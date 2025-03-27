@@ -296,99 +296,86 @@
     <div class="loading" id="loading"></div>
     <div class="message" id="message"></div>
 
-    <script>
-        function showLoading() {
-            document.getElementById('loading').style.display = 'flex';
-        }
+  <!-- 修改 script 部分的请求代码 -->
+<script>
+    function jsonp(url, callback) {
+        const script = document.createElement('script');
+        const callbackName = 'jsonpCallback_' + Math.round(100000 * Math.random());
+        window[callbackName] = function(data) {
+            callback(data);
+            document.body.removeChild(script);
+            delete window[callbackName];
+        };
+        script.src = `${url}${url.includes('?') ? '&' : '?'}callback=${callbackName}`;
+        document.body.appendChild(script);
+    }
 
-        function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
-        }
+    function showLoading() {
+        document.getElementById('loading').style.display = 'flex';
+    }
 
-        function showMessage(text, type) {
-            const message = document.getElementById('message');
-            message.textContent = text;
-            message.className = 'message ' + type;
-            message.style.display = 'block';
-            setTimeout(() => {
-                message.style.display = 'none';
-            }, 3000);
-        }
+    function hideLoading() {
+        document.getElementById('loading').style.display = 'none';
+    }
 
-        function renderMenuCards(menus) {
-            const menuCards = document.getElementById('menuCards');
-            menuCards.innerHTML = menus.map((menu, index) => `
-                <div class="card" style="animation-delay: ${index * 0.2}s">
-                    <div class="glow"></div>
-                    <div class="card-image">
-                        <img src="https://picsum.photos/400/300?random=${index}" alt="${menu.menuName}">
-                    </div>
-                    <div class="card-content">
-                        <div class="serial-number">No.${menu.serialNumber}</div>
-                        <div class="menu-name">${menu.menuName}</div>
-                    </div>
+    function showMessage(text, type) {
+        const message = document.getElementById('message');
+        message.textContent = text;
+        message.className = 'message ' + type;
+        message.style.display = 'block';
+        setTimeout(() => {
+            message.style.display = 'none';
+        }, 3000);
+    }
+
+    function renderMenuCards(menus) {
+        const menuCards = document.getElementById('menuCards');
+        menuCards.innerHTML = menus.map((menu, index) => `
+            <div class="card" style="animation-delay: ${index * 0.2}s">
+                <div class="glow"></div>
+                <div class="card-image">
+                    <img src="https://picsum.photos/400/300?random=${index}" alt="${menu.menuName}">
                 </div>
-            `).join('');
-        }
-
-       async function getRandomMenu() {
-    showLoading();
-    try {
-        const response = await fetch('http://student.zjgz.zj.cn:9090/menu/random');
-        const result = await response.json();
-        if (result.success && result.code === "00000") {
-            renderMenuCards(result.data);
-        } else {
-            showMessage(result.message || '获取菜单失败', 'error');
-        }
-    } catch (error) {
-        console.error(error);
-        showMessage('系统错误', 'error');
-    } finally {
-        hideLoading();
-    }
-}
-
-async function searchByNumbers() {
-    const numbers = document.getElementById('searchInput').value;
-    if (!numbers) {
-        showMessage('请输入序号', 'error');
-        return;
+                <div class="card-content">
+                    <div class="serial-number">No.${menu.serialNumber}</div>
+                    <div class="menu-name">${menu.menuName}</div>
+                </div>
+            </div>
+        `).join('');
     }
 
-    showLoading();
-    try {
-        const response = await fetch(`http://student.zjgz.zj.cn:9090/menu/getByNumbers?numbers=${numbers}`);
-        const result = await response.json();
-        if (result.success && result.code === "00000") {
-            renderMenuCards(result.data);
-        } else {
-            showMessage(result.message || '查询失败', 'error');
-        }
-    } catch (error) {
-        console.error(error);
-        showMessage('系统错误', 'error');
-    } finally {
-        hideLoading();
-    }
-}
-
-        // 页面加载时获取随机菜单
-        getRandomMenu();
-
-        // 添加鼠标移动光晕效果
-        document.addEventListener('mousemove', (e) => {
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const glow = card.querySelector('.glow');
-                if (glow) {
-                    glow.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,107,107,0.2) 0%, transparent 70%)`;
-                }
-            });
+    function getRandomMenu() {
+        showLoading();
+        jsonp('http://student.zjgz.zj.cn:9090/menu/random', function(result) {
+            if (result.success && result.code === "00000") {
+                renderMenuCards(result.data);
+            } else {
+                showMessage(result.message || '获取菜单失败', 'error');
+            }
+            hideLoading();
         });
-    </script>
+    }
+
+    function searchByNumbers() {
+        const numbers = document.getElementById('searchInput').value;
+        if (!numbers) {
+            showMessage('请输入序号', 'error');
+            return;
+        }
+
+        showLoading();
+        jsonp(`http://student.zjgz.zj.cn:9090/menu/getByNumbers?numbers=${numbers}`, function(result) {
+            if (result.success && result.code === "00000") {
+                renderMenuCards(result.data);
+            } else {
+                showMessage(result.message || '查询失败', 'error');
+            }
+            hideLoading();
+        });
+    }
+
+    // 页面加载时获取随机菜单
+    getRandomMenu();
+</script>
 </body>
 </html>
